@@ -3,4 +3,41 @@
   display: flex;
   align-items: center;
   justify-content: center;
+  transition: 0.2s;
+  &:hover {
+    box-shadow: 0 0 22px 6px rgba(255, 255, 255, 0.1);
+  }
+  &[data-focused="true"] {
+    box-shadow: 0 0 22px 6px rgba(255, 255, 255, 0.2);
+  }
+}
+
+.tileInfo {
+  display: flex;
+  align-items: center;
+  --height: 28px;
+  position: absolute;
+  height: var(--height);
+  bottom: calc(var(--height) * -1);
+  left: 0;
+  right: 0;
+  background-color: rgb(39, 39, 39);
+  font-size: 12px;
+  padding-left: 6px;
+  padding-right: 6px;
+  animation: fadeIn 0.2s ease-in-out;
+  .username {
+    flex: 1;
+  }
+  .coords {
+  }
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
 }

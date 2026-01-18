@@ -3,43 +3,40 @@ import style from "./App.module.css";
 import { Tile } from "./Tile";
 import { windowSizeTracker } from "./utils";
 
-const TILE_SIZE = 128;
+const CLICK_THRESHOLD = 5;
+
+
+const TILE_SIZE = 256;
 const TILE_START = -35;
 const TILE_END = 35;
 const TILE_BORDER_WIDTH = 1;
+
+const STEP = TILE_SIZE - TILE_BORDER_WIDTH;
+
 
 function App() {
   const [windowWidth, windowHeight] = windowSizeTracker();
   const [cameraX, setCameraX] = createSignal(0);
   const [cameraY, setCameraY] = createSignal(0);
   const [zoom, setZoom] = createSignal(1);
+  const [clickedTilePos, setClickedTilePos] = createSignal<string | null>(null);
 
-  const step = () => (TILE_SIZE - TILE_BORDER_WIDTH) * zoom();
-  const tileSize = () => TILE_SIZE * zoom();
 
-  const onPointerDown = (e: PointerEvent) => {
-    const target = e.currentTarget as HTMLDivElement;
-    target.setPointerCapture(e.pointerId);
-  };
-  const onPointerUp = (e: PointerEvent) => {
-    const target = e.currentTarget as HTMLDivElement;
-    target.releasePointerCapture(e.pointerId);
-  };
 
   const gridToScreen = (gridX: number, gridY: number) => {
     return {
-      x: Math.round(gridX * step() + cameraX() + windowWidth() / 2),
-      y: Math.round(gridY * step() + cameraY() + windowHeight() / 2),
+      x: gridX * STEP,
+      y: gridY * STEP,
     };
   };
 
   const screenToGrid = (clientX: number, clientY: number) => {
-    const worldX = clientX - windowWidth() / 2 - cameraX();
-    const worldY = clientY - windowHeight() / 2 - cameraY();
+    const offsetX = clientX - (windowWidth() / 2 + cameraX());
+    const offsetY = clientY - (windowHeight() / 2 + cameraY());
 
     return {
-      x: Math.round(worldX / step()),
-      y: Math.round(worldY / step()),
+      x: Math.round((offsetX / zoom()) / STEP),
+      y: Math.round((offsetY / zoom()) / STEP),
     };
   };
 
@@ -56,7 +53,6 @@ function App() {
   };
 
   const visibleTiles = createMemo(() => {
-    document.querySelectorAll(".uwu").forEach((el) => el.remove());
 
     const range = getVisibleGridRange();
 
@@ -74,6 +70,31 @@ function App() {
 
     return tilePos;
   });
+let pointerStartPos = { x: 0, y: 0 };
+
+  const onPointerDown = (e: PointerEvent) => {
+    const target = e.currentTarget as HTMLDivElement;
+    target.setPointerCapture(e.pointerId);
+
+    pointerStartPos = { x: e.clientX, y: e.clientY };
+
+  };
+  const onPointerUp = (e: PointerEvent) => {
+    const target = e.currentTarget as HTMLDivElement;
+    target.releasePointerCapture(e.pointerId);
+
+  const dx = e.clientX - pointerStartPos.x;
+  const dy = e.clientY - pointerStartPos.y;
+  const distance = Math.sqrt(dx * dx + dy * dy);
+
+  if (distance < CLICK_THRESHOLD) {
+    const gridPos = screenToGrid(e.clientX, e.clientY);
+    const key = `${gridPos.x},${gridPos.y}`;
+    setClickedTilePos(key);
+  }
+
+
+  };
 
   const onPointerMove = (e: PointerEvent) => {
     const target = e.currentTarget as HTMLDivElement;
@@ -82,24 +103,28 @@ function App() {
     setCameraY(cameraY() + e.movementY);
   };
 
-  const onWheel = (e: WheelEvent) => {
-    const zoomSpeed = 0.08;
-    const direction = e.deltaY > 0 ? -1 : 1;
+const onWheel = (e: WheelEvent) => {
+  const zoomSpeed = 0.08;
+  const direction = e.deltaY > 0 ? -1 : 1;
 
-    const oldZoom = zoom();
-    const newZoom = Math.min(Math.max(oldZoom + direction * zoomSpeed, 0.8), 3);
+  const oldZoom = zoom();
+  const newZoom = Math.min(Math.max(oldZoom + direction * zoomSpeed, 0.8), 3);
 
-    if (oldZoom === newZoom) return;
+  if (oldZoom === newZoom) return;
 
-    const mouseRelX = e.clientX - windowWidth() / 2 - cameraX();
-    const mouseRelY = e.clientY - windowHeight() / 2 - cameraY();
+  const pivotX = windowWidth() / 2 + cameraX();
+  const pivotY = windowHeight() / 2 + cameraY();
 
-    const zoomRatio = newZoom / oldZoom;
+  const mouseOffsetX = e.clientX - pivotX;
+  const mouseOffsetY = e.clientY - pivotY;
 
-    setZoom(newZoom);
-    setCameraX(e.clientX - windowWidth() / 2 - mouseRelX * zoomRatio);
-    setCameraY(e.clientY - windowHeight() / 2 - mouseRelY * zoomRatio);
-  };
+  const ratio = newZoom / oldZoom;
+
+  setZoom(newZoom);
+  
+  setCameraX(cameraX() + (mouseOffsetX - mouseOffsetX * ratio));
+  setCameraY(cameraY() + (mouseOffsetY - mouseOffsetY * ratio));
+};
 
   return (
     <div
@@ -108,21 +133,31 @@ function App() {
       onPointerUp={onPointerUp}
       onPointerMove={onPointerMove}
       onWheel={onWheel}
+      style={{
+        position: "absolute",
+        left: `${windowWidth() / 2 + cameraX()}px`,
+        top: `${windowHeight() / 2 + cameraY()}px`,
+        transform: `scale(${zoom()})`,
+        "transform-origin": "0 0",
+        "will-change": "transform",
+      }}
     >
       <For each={visibleTiles()}>
         {(key) => {
           const [x, y] = key.split(",").map(Number);
+          const pos = gridToScreen(x, y);
           return (
             <Tile
-              x={x}
-              y={y}
-              size={tileSize()}
+              tile={{x, y, username: "Supertiger"}}
+              size={TILE_SIZE}
               style={{
-                left: `${gridToScreen(x, y).x}px`,
-                top: `${gridToScreen(x, y).y}px`,
+                left: `${pos.x}px`,
+                top: `${pos.y}px`,
                 transform: "translate(-50%, -50%)",
-                border: `${TILE_BORDER_WIDTH * zoom()}px solid white`,
+                border: `${TILE_BORDER_WIDTH}px solid rgb(39, 39, 39)`,
               }}
+              onClick={() => setClickedTilePos(key)}
+              focused={clickedTilePos() === key}
             />
           );
         }}
