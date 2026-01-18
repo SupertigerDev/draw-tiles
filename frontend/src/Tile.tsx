@@ -1,6 +1,6 @@
 import type { JSX } from "solid-js/jsx-runtime";
 import style from "./Tile.module.css";
-import { createSignal, Show } from "solid-js";
+import { Show } from "solid-js";
 
 export interface Tile {
   x: number;
