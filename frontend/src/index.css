@@ -17,6 +17,7 @@ html {
 * {
   box-sizing: border-box;
 }
+.link,
 a {
   padding-top: 1px;
   padding-right: 2px;
@@ -24,6 +25,7 @@ a {
   padding-left: 2px;
   border-radius: 4px;
   color: #70a2ff;
+  cursor: pointer;
   transition: 0.2s;
   text-decoration: none;
   &:hover {

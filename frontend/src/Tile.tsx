@@ -49,9 +49,9 @@ export const TileInfo = (props: { tile: Tile }) => {
       <div class={style.coords}>
         {props.tile.x}, {props.tile.y}
       </div>
-      <a href="#" onClick={() => setShowEditor(true)}>
+      <div class="link" onClick={() => setShowEditor(true)}>
         Edit
-      </a>
+      </div>
       <Show when={showEditor()}>
         <Portal>
           <Editor close={() => setShowEditor(false)} />

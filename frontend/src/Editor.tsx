@@ -22,9 +22,9 @@ export const Editor = (props: EditorProps) => {
 
   return (
     <div class={style.editor}>
-      <a href="#" class={style.backButton} onClick={props.close}>
+      <div class={`link ${style.backButton}`} onClick={props.close}>
         Back
-      </a>
+      </div>
       <embed src="/klecks-embed.html" class={style.klecksEmbed} />
     </div>
   );
