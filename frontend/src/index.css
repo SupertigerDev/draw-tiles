@@ -6,8 +6,12 @@ body {
 }
 
 #root {
+  position: absolute;
+
+  overflow: hidden;
   width: 100vw;
   height: 100vh;
+  inset: 0;
 }
 
 body,
