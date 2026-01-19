@@ -1,0 +1,10 @@
+{
+  "cSpell.words": [
+    "klecks"
+  ],
+  "search.exclude": {
+    "frontend/public/klecks": true,
+    "**/node_modules": true,
+    "klecks": true,
+  }
+}

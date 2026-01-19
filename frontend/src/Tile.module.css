@@ -13,19 +13,21 @@
 }
 
 .tileInfo {
-  display: flex;
-  align-items: center;
   --height: 28px;
   position: absolute;
-  height: var(--height);
+  z-index: 111111;
+  right: 0;
   bottom: calc(var(--height) * -1);
   left: 0;
-  right: 0;
-  background-color: rgb(39, 39, 39);
-  font-size: 12px;
-  padding-left: 6px;
+  display: flex;
+  align-items: center;
+  height: var(--height);
   padding-right: 6px;
+  padding-left: 6px;
+  background-color: rgb(39, 39, 39);
   animation: fadeIn 0.2s ease-in-out;
+  font-size: 12px;
+  gap: 6px;
   .username {
     flex: 1;
   }

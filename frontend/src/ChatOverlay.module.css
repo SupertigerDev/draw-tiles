@@ -1,0 +1,73 @@
+.chatOverlay {
+  position: absolute;
+  z-index: 1111111111;
+  bottom: 10px;
+  left: 10px;
+  display: flex;
+  flex-direction: column;
+  width: 250px;
+  gap: 4px;
+}
+
+[data-opened="true"] {
+  .messageLog,
+  .inputBar {
+    background-color: rgba(255, 255, 255, 0.15);
+  }
+}
+.messageLog {
+  display: flex;
+  flex-direction: column;
+  max-height: 200px;
+  border-radius: 4px;
+  background-color: rgba(255, 255, 255, 0.1);
+  transition: 0.2s;
+  backdrop-filter: blur(10px);
+  overflow-block: auto;
+  gap: 2px;
+  scrollbar-width: none;
+}
+
+.messageItem {
+  display: flex;
+  padding-right: 6px;
+  padding-left: 6px;
+  font-size: 12px;
+  gap: 4px;
+  &:first-child {
+    margin-top: 6px;
+  }
+  &:last-child {
+    margin-bottom: 6px;
+  }
+  &[data-type="SYSTEM"] {
+    color: rgba(255, 255, 255, 0.5);
+  }
+  &[data-hide="true"] {
+    display: none;
+  }
+  .username {
+    opacity: 0.6;
+  }
+  .content {
+  }
+}
+
+.inputBar {
+  border-radius: 4px;
+  background-color: rgba(255, 255, 255, 0.1);
+  transition: 0.2s;
+  backdrop-filter: blur(10px);
+  .input {
+    width: 100%;
+    padding: 6px;
+    border: none;
+    outline: none;
+    color: white;
+    background-color: transparent;
+    font-size: 12px;
+    &.placeholder {
+      color: rgba(255, 255, 255, 0.3);
+    }
+  }
+}
