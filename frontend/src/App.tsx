@@ -143,7 +143,6 @@ function App() {
           top: `${windowHeight() / 2 + cameraY()}px`,
           transform: `scale(${zoom()})`,
           "transform-origin": "0 0",
-          "will-change": "transform",
         }}
       >
         <For each={visibleTiles()}>
