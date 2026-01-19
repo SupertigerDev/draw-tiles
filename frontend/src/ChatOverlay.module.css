@@ -1,4 +1,6 @@
 .chatOverlay {
+  --bg-color: rgba(27, 27, 27, 0.8);
+  --bg-color-open: rgba(39, 39, 39, 0.8);
   position: absolute;
   z-index: 1111111111;
   bottom: 10px;
@@ -12,7 +14,7 @@
 [data-opened="true"] {
   .messageLog,
   .inputBar {
-    background-color: rgba(255, 255, 255, 0.15);
+    background-color: var(--bg-color-open);
   }
 }
 .messageLog {
@@ -20,7 +22,7 @@
   flex-direction: column;
   max-height: 200px;
   border-radius: 4px;
-  background-color: rgba(255, 255, 255, 0.1);
+  background-color: var(--bg-color);
   transition: 0.2s;
   backdrop-filter: blur(10px);
   overflow-block: auto;
@@ -55,7 +57,7 @@
 
 .inputBar {
   border-radius: 4px;
-  background-color: rgba(255, 255, 255, 0.1);
+  background-color: var(--bg-color);
   transition: 0.2s;
   backdrop-filter: blur(10px);
   .input {
