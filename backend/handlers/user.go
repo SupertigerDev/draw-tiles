@@ -3,9 +3,9 @@ package handlers
 import (
 	"draw-tiles-backend/dto"
 	"draw-tiles-backend/ent"
+	"draw-tiles-backend/security"
+	"draw-tiles-backend/utils"
 	"fmt"
-	"reflect"
-	"strings"
 
 	"github.com/bwmarrin/snowflake"
 	"github.com/go-playground/validator/v10"
@@ -13,8 +13,9 @@ import (
 )
 
 type UserHandler struct {
-	DB *ent.Client
-	SF *snowflake.Node
+	Database  *ent.Client
+	Snowflake *snowflake.Node
+	Validator *validator.Validate
 }
 
 type UserRequest struct {
@@ -27,50 +28,37 @@ func (h *UserHandler) CreateUser(c *fiber.Ctx) error {
 	body := new(UserRequest)
 
 	if err := c.BodyParser(body); err != nil {
-		return c.Status(400).JSON(fiber.Map{
-			"error": "Cannot parse JSON",
-		})
+		return fiber.NewError(fiber.StatusBadRequest, "Invalid JSON format")
 	}
 
-	validate := validator.New()
-	validate.RegisterTagNameFunc(func(fld reflect.StructField) string {
-		name := strings.SplitN(fld.Tag.Get("json"), ",", 2)[0]
-		if name == "-" {
-			return ""
-		}
-		return name
-	})
-	err := validate.Struct(body)
-	if err := validate.Struct(body); err != nil {
-		errors := make(map[string]string)
-
-		for _, err := range err.(validator.ValidationErrors) {
-			errors[err.Field()] = fmt.Sprintf("failed validation on %s", err.Tag())
-		}
-
-		return c.Status(400).JSON(fiber.Map{
-			"errors": errors,
-		})
+	if err := h.Validator.Struct(body); err != nil {
+		return fiber.NewError(fiber.StatusBadRequest, utils.FormatFirstError(err))
 	}
 
-	id := h.SF.Generate().Int64()
+	id := h.Snowflake.Generate().Int64()
 
-	u, err := h.DB.User.
+	hash, err := security.HashPassword(body.Password)
+	if err != nil {
+		fmt.Println("Failed to hash password", err)
+		return fiber.NewError(fiber.StatusInternalServerError, "Could not process password")
+	}
+
+	u, err := h.Database.User.
 		Create().
 		SetID(id).
 		SetEmail(body.Email).
 		SetUsername(body.Username).
-		SetPassword(body.Password).
+		SetPassword(hash).
 		Save(c.Context())
 
 	if err != nil {
-		fmt.Println("Failed to create user", err)
-		return c.Status(500).JSON(fiber.Map{
-			"error": "Failed to create user",
-		})
+		if ent.IsConstraintError(err) {
+			return fiber.NewError(fiber.StatusConflict, "Username or Email already exists")
+		}
+		return fiber.NewError(fiber.StatusInternalServerError, "Database error")
 	}
 
 	response := dto.FilterUserResponse(u)
 
-	return c.Status(201).JSON(response)
+	return utils.SendSuccess(c, response, fiber.StatusCreated)
 }
