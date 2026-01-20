@@ -15,15 +15,16 @@ type UserService struct {
 	Database  *ent.Client
 	Snowflake *snowflake.Node
 	Validator *validator.Validate
+	JWT       *security.JWTService
 }
 
-func (h *UserService) Register(ctx context.Context, email, username, password string) (*ent.User, error) {
+func (h *UserService) Register(ctx context.Context, email, username, password string) (*ent.User, string, error) {
 
 	id := h.Snowflake.Generate().Int64()
 
 	hash, err := security.HashPassword(password)
 	if err != nil {
-		return nil, err
+		return nil, "", err
 	}
 
 	u, err := h.Database.User.
@@ -35,13 +36,19 @@ func (h *UserService) Register(ctx context.Context, email, username, password st
 		Save(ctx)
 
 	if err != nil {
-		return nil, err
+		return nil, "", err
 	}
 
-	return u, nil
+	token, err := h.JWT.GenerateToken(u.ID)
+
+	if err != nil {
+		return nil, "", err
+	}
+
+	return u, token, nil
 }
 
-func (h *UserService) Login(ctx context.Context, email, password string) (*ent.User, error) {
+func (h *UserService) Login(ctx context.Context, email, password string) (*ent.User, string, error) {
 
 	u, err := h.Database.User.
 		Query().
@@ -50,14 +57,20 @@ func (h *UserService) Login(ctx context.Context, email, password string) (*ent.U
 
 	if err != nil {
 		if ent.IsNotFound(err) {
-			return nil, utils.ErrInvalidCredentials
+			return nil, "", utils.ErrInvalidCredentials
 		}
-		return nil, err
+		return nil, "", err
 	}
 
 	if !security.CheckPasswordHash(password, u.Password) {
-		return nil, utils.ErrInvalidCredentials
+		return nil, "", utils.ErrInvalidCredentials
 	}
 
-	return u, nil
+	token, err := h.JWT.GenerateToken(u.ID)
+
+	if err != nil {
+		return nil, "", err
+	}
+
+	return u, token, nil
 }

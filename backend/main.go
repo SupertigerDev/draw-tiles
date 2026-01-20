@@ -7,8 +7,10 @@ import (
 	"reflect"
 	"strings"
 
+	"draw-tiles-backend/config"
 	"draw-tiles-backend/database"
 	"draw-tiles-backend/handlers"
+	"draw-tiles-backend/security"
 	"draw-tiles-backend/services"
 	"draw-tiles-backend/utils"
 
@@ -18,6 +20,8 @@ import (
 )
 
 func main() {
+	cfg := config.LoadConfig()
+	jwtService := security.NewJWTService(cfg.JWTSecret)
 	app := fiber.New(fiber.Config{
 		ErrorHandler: func(c *fiber.Ctx, err error) error {
 			code := fiber.StatusInternalServerError
@@ -41,7 +45,7 @@ func main() {
 		return
 	}
 
-	dbClient := database.NewClient()
+	dbClient := database.NewClient(cfg.DBURL)
 	defer dbClient.Close()
 
 	validate := validator.New()
@@ -56,6 +60,7 @@ func main() {
 	userService := &services.UserService{
 		Database:  dbClient,
 		Snowflake: node,
+		JWT:       jwtService,
 	}
 
 	userHandler := &handlers.UserHandler{Database: dbClient, Snowflake: node, Validator: validate, Service: userService}
@@ -70,7 +75,7 @@ func main() {
 	auth.Post("/register", userHandler.Register)
 	auth.Post("/login", userHandler.Login)
 
-	if err := app.Listen("127.0.0.1:8080"); err != nil {
+	if err := app.Listen("127.0.0.1:" + cfg.Port); err != nil {
 		log.Fatal("error starting http server: ", err)
 	}
 }

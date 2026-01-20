@@ -9,8 +9,8 @@ import (
 	_ "github.com/lib/pq"
 )
 
-func NewClient() *ent.Client {
-	client, err := ent.Open("postgres", "host=localhost port=5432 user=postgres dbname=draw-tiles password=123 sslmode=disable")
+func NewClient(databaseURL string) *ent.Client {
+	client, err := ent.Open("postgres", databaseURL)
 	if err != nil {
 		log.Fatalf("failed opening connection to postgres: %v", err)
 	}

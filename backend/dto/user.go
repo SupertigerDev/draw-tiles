@@ -7,6 +7,11 @@ type UserResponse struct {
 	Username string `json:"username"`
 }
 
+type AuthResponse struct {
+	User  UserResponse `json:"user"`
+	Token string       `json:"token"`
+}
+
 func FilterUserResponse(u *ent.User) UserResponse {
 	return UserResponse{
 		ID:       u.ID,

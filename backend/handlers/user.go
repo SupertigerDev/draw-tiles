@@ -36,7 +36,7 @@ func (h *UserHandler) Register(c *fiber.Ctx) error {
 		return fiber.NewError(fiber.StatusBadRequest, utils.FormatFirstError(err))
 	}
 
-	u, err := h.Service.Register(c.Context(), body.Email, body.Username, body.Password)
+	u, token, err := h.Service.Register(c.Context(), body.Email, body.Username, body.Password)
 
 	if err != nil {
 		if ent.IsConstraintError(err) {
@@ -45,7 +45,10 @@ func (h *UserHandler) Register(c *fiber.Ctx) error {
 		return fiber.NewError(fiber.StatusInternalServerError, "Database error")
 	}
 
-	response := dto.FilterUserResponse(u)
+	response := dto.AuthResponse{
+		User:  dto.FilterUserResponse(u),
+		Token: token,
+	}
 
 	return utils.SendSuccess(c, response, fiber.StatusCreated)
 }
@@ -66,16 +69,19 @@ func (h *UserHandler) Login(c *fiber.Ctx) error {
 		return fiber.NewError(fiber.StatusBadRequest, utils.FormatFirstError(err))
 	}
 
-	u, err := h.Service.Login(c.Context(), body.Email, body.Password)
+	u, token, err := h.Service.Login(c.Context(), body.Email, body.Password)
 
 	if err != nil {
 		if errors.Is(err, utils.ErrInvalidCredentials) {
 			return fiber.NewError(fiber.StatusUnauthorized, err.Error())
 		}
-		return fiber.NewError(fiber.StatusInternalServerError, "Database error")
+		return fiber.NewError(fiber.StatusInternalServerError, "Failed to login. Try again later.")
 	}
 
-	response := dto.FilterUserResponse(u)
+	response := dto.AuthResponse{
+		User:  dto.FilterUserResponse(u),
+		Token: token,
+	}
 
 	return utils.SendSuccess(c, response, fiber.StatusOK)
 

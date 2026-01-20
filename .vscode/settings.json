@@ -1,5 +1,12 @@
 {
-  "cSpell.words": ["bwmarrin", "entgo", "gofiber", "klecks"],
+  "cSpell.words": [
+    "bwmarrin",
+    "DBURL",
+    "entgo",
+    "godotenv",
+    "gofiber",
+    "klecks"
+  ],
   "search.exclude": {
     "frontend/public/klecks": true,
     "**/node_modules": true,
