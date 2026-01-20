@@ -9,6 +9,7 @@ import (
 
 	"draw-tiles-backend/database"
 	"draw-tiles-backend/handlers"
+	"draw-tiles-backend/services"
 	"draw-tiles-backend/utils"
 
 	"github.com/bwmarrin/snowflake"
@@ -52,15 +53,22 @@ func main() {
 		return name
 	})
 
-	userHandler := &handlers.UserHandler{Database: dbClient, Snowflake: node, Validator: validate}
+	userService := &services.UserService{
+		Database:  dbClient,
+		Snowflake: node,
+	}
+
+	userHandler := &handlers.UserHandler{Database: dbClient, Snowflake: node, Validator: validate, Service: userService}
 
 	api := app.Group("/api")
+	auth := api.Group("/auth")
 
 	api.Get("/", func(c *fiber.Ctx) error {
 		return c.SendString("DrawTiles API Online.")
 	})
 
-	api.Post("/users", userHandler.CreateUser)
+	auth.Post("/register", userHandler.Register)
+	auth.Post("/login", userHandler.Login)
 
 	if err := app.Listen("127.0.0.1:8080"); err != nil {
 		log.Fatal("error starting http server: ", err)
