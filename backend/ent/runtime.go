@@ -4,7 +4,6 @@ package ent
 
 import (
 	"draw-tiles-backend/ent/schema"
-	"draw-tiles-backend/ent/tile"
 	"draw-tiles-backend/ent/user"
 )
 
@@ -12,12 +11,6 @@ import (
 // (default values, validators, hooks and policies) and stitches it
 // to their package variables.
 func init() {
-	tileFields := schema.Tile{}.Fields()
-	_ = tileFields
-	// tileDescUsername is the schema descriptor for username field.
-	tileDescUsername := tileFields[3].Descriptor()
-	// tile.UsernameValidator is a validator for the "username" field. It is called by the builders before save.
-	tile.UsernameValidator = tileDescUsername.Validators[0].(func(string) error)
 	userFields := schema.User{}.Fields()
 	_ = userFields
 	// userDescEmail is the schema descriptor for email field.

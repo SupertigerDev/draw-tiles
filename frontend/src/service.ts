@@ -1,4 +1,4 @@
-import { getStorageItem } from "./storage";
+import { useStorage } from "./storage";
 
 const API_URL = "http://localhost:8080/api";
 
@@ -32,7 +32,7 @@ type FetcherResponse<T> =
       data: T;
     };
 const fetcher = async <T>(url: ApiUrl, options?: FetcherOptions) => {
-  const token = options?.useToken ? getStorageItem("token", null) : null;
+  const token = options?.useToken ? useStorage().getItem("token", null) : null;
   const res = await fetch(url, {
     method: options?.method || "GET",
     headers: {
@@ -51,7 +51,7 @@ interface AuthResponse {
   };
   token: string;
 }
-export const register = (data: {
+export const userRegister = (data: {
   email: string;
   username: string;
   password: string;
@@ -59,6 +59,6 @@ export const register = (data: {
   return fetcher<AuthResponse>(ApiUrl.auth.register, { method: "POST", data });
 };
 
-export const login = (data: { email: string; password: string }) => {
+export const userLogin = (data: { email: string; password: string }) => {
   return fetcher<AuthResponse>(ApiUrl.auth.login, { method: "POST", data });
 };

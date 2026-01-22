@@ -17,6 +17,7 @@ import (
 	"github.com/bwmarrin/snowflake"
 	"github.com/go-playground/validator/v10"
 	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v2/middleware/cors"
 )
 
 func main() {
@@ -47,6 +48,11 @@ func main() {
 
 	dbClient := database.NewClient(cfg.DBURL)
 	defer dbClient.Close()
+
+	app.Use(cors.New(cors.Config{
+		AllowOrigins:     cfg.Origin,
+		AllowCredentials: true,
+	}))
 
 	validate := validator.New()
 	validate.RegisterTagNameFunc(func(fld reflect.StructField) string {

@@ -38,8 +38,9 @@ type TileMutation struct {
 	addx          *int
 	y             *int
 	addy          *int
-	username      *string
 	clearedFields map[string]struct{}
+	user          *int64
+	cleareduser   bool
 	done          bool
 	oldValue      func(context.Context) (*Tile, error)
 	predicates    []predicate.Tile
@@ -261,40 +262,43 @@ func (m *TileMutation) ResetY() {
 	m.addy = nil
 }
 
-// SetUsername sets the "username" field.
-func (m *TileMutation) SetUsername(s string) {
-	m.username = &s
+// SetUserID sets the "user" edge to the User entity by id.
+func (m *TileMutation) SetUserID(id int64) {
+	m.user = &id
 }
 
-// Username returns the value of the "username" field in the mutation.
-func (m *TileMutation) Username() (r string, exists bool) {
-	v := m.username
-	if v == nil {
-		return
-	}
-	return *v, true
+// ClearUser clears the "user" edge to the User entity.
+func (m *TileMutation) ClearUser() {
+	m.cleareduser = true
 }
 
-// OldUsername returns the old "username" field's value of the Tile entity.
-// If the Tile object wasn't provided to the builder, the object is fetched from the database.
-// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *TileMutation) OldUsername(ctx context.Context) (v string, err error) {
-	if !m.op.Is(OpUpdateOne) {
-		return v, errors.New("OldUsername is only allowed on UpdateOne operations")
-	}
-	if m.id == nil || m.oldValue == nil {
-		return v, errors.New("OldUsername requires an ID field in the mutation")
-	}
-	oldValue, err := m.oldValue(ctx)
-	if err != nil {
-		return v, fmt.Errorf("querying old value for OldUsername: %w", err)
-	}
-	return oldValue.Username, nil
+// UserCleared reports if the "user" edge to the User entity was cleared.
+func (m *TileMutation) UserCleared() bool {
+	return m.cleareduser
 }
 
-// ResetUsername resets all changes to the "username" field.
-func (m *TileMutation) ResetUsername() {
-	m.username = nil
+// UserID returns the "user" edge ID in the mutation.
+func (m *TileMutation) UserID() (id int64, exists bool) {
+	if m.user != nil {
+		return *m.user, true
+	}
+	return
+}
+
+// UserIDs returns the "user" edge IDs in the mutation.
+// Note that IDs always returns len(IDs) <= 1 for unique edges, and you should use
+// UserID instead. It exists only for internal usage by the builders.
+func (m *TileMutation) UserIDs() (ids []int64) {
+	if id := m.user; id != nil {
+		ids = append(ids, *id)
+	}
+	return
+}
+
+// ResetUser resets all changes to the "user" edge.
+func (m *TileMutation) ResetUser() {
+	m.user = nil
+	m.cleareduser = false
 }
 
 // Where appends a list predicates to the TileMutation builder.
@@ -331,15 +335,12 @@ func (m *TileMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *TileMutation) Fields() []string {
-	fields := make([]string, 0, 3)
+	fields := make([]string, 0, 2)
 	if m.x != nil {
 		fields = append(fields, tile.FieldX)
 	}
 	if m.y != nil {
 		fields = append(fields, tile.FieldY)
-	}
-	if m.username != nil {
-		fields = append(fields, tile.FieldUsername)
 	}
 	return fields
 }
@@ -353,8 +354,6 @@ func (m *TileMutation) Field(name string) (ent.Value, bool) {
 		return m.X()
 	case tile.FieldY:
 		return m.Y()
-	case tile.FieldUsername:
-		return m.Username()
 	}
 	return nil, false
 }
@@ -368,8 +367,6 @@ func (m *TileMutation) OldField(ctx context.Context, name string) (ent.Value, er
 		return m.OldX(ctx)
 	case tile.FieldY:
 		return m.OldY(ctx)
-	case tile.FieldUsername:
-		return m.OldUsername(ctx)
 	}
 	return nil, fmt.Errorf("unknown Tile field %s", name)
 }
@@ -392,13 +389,6 @@ func (m *TileMutation) SetField(name string, value ent.Value) error {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.SetY(v)
-		return nil
-	case tile.FieldUsername:
-		v, ok := value.(string)
-		if !ok {
-			return fmt.Errorf("unexpected type %T for field %s", value, name)
-		}
-		m.SetUsername(v)
 		return nil
 	}
 	return fmt.Errorf("unknown Tile field %s", name)
@@ -482,28 +472,34 @@ func (m *TileMutation) ResetField(name string) error {
 	case tile.FieldY:
 		m.ResetY()
 		return nil
-	case tile.FieldUsername:
-		m.ResetUsername()
-		return nil
 	}
 	return fmt.Errorf("unknown Tile field %s", name)
 }
 
 // AddedEdges returns all edge names that were set/added in this mutation.
 func (m *TileMutation) AddedEdges() []string {
-	edges := make([]string, 0, 0)
+	edges := make([]string, 0, 1)
+	if m.user != nil {
+		edges = append(edges, tile.EdgeUser)
+	}
 	return edges
 }
 
 // AddedIDs returns all IDs (to other nodes) that were added for the given edge
 // name in this mutation.
 func (m *TileMutation) AddedIDs(name string) []ent.Value {
+	switch name {
+	case tile.EdgeUser:
+		if id := m.user; id != nil {
+			return []ent.Value{*id}
+		}
+	}
 	return nil
 }
 
 // RemovedEdges returns all edge names that were removed in this mutation.
 func (m *TileMutation) RemovedEdges() []string {
-	edges := make([]string, 0, 0)
+	edges := make([]string, 0, 1)
 	return edges
 }
 
@@ -515,25 +511,42 @@ func (m *TileMutation) RemovedIDs(name string) []ent.Value {
 
 // ClearedEdges returns all edge names that were cleared in this mutation.
 func (m *TileMutation) ClearedEdges() []string {
-	edges := make([]string, 0, 0)
+	edges := make([]string, 0, 1)
+	if m.cleareduser {
+		edges = append(edges, tile.EdgeUser)
+	}
 	return edges
 }
 
 // EdgeCleared returns a boolean which indicates if the edge with the given name
 // was cleared in this mutation.
 func (m *TileMutation) EdgeCleared(name string) bool {
+	switch name {
+	case tile.EdgeUser:
+		return m.cleareduser
+	}
 	return false
 }
 
 // ClearEdge clears the value of the edge with the given name. It returns an error
 // if that edge is not defined in the schema.
 func (m *TileMutation) ClearEdge(name string) error {
+	switch name {
+	case tile.EdgeUser:
+		m.ClearUser()
+		return nil
+	}
 	return fmt.Errorf("unknown Tile unique edge %s", name)
 }
 
 // ResetEdge resets all changes to the edge with the given name in this mutation.
 // It returns an error if the edge is not defined in the schema.
 func (m *TileMutation) ResetEdge(name string) error {
+	switch name {
+	case tile.EdgeUser:
+		m.ResetUser()
+		return nil
+	}
 	return fmt.Errorf("unknown Tile edge %s", name)
 }
 

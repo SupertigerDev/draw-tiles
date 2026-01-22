@@ -1,16 +1,25 @@
+import { createSignal } from "solid-js";
+
 const StorageKeys = {
-  TOKEN: 'token',
-}
+  TOKEN: "token",
+};
 
-type StorageKey = typeof StorageKeys[keyof typeof StorageKeys];
+const [items, setItems] = createSignal<Record<StorageKey, string>>({
+  ...localStorage,
+});
+type StorageKey = (typeof StorageKeys)[keyof typeof StorageKeys];
 
-export const getStorageItem = <T>(key: StorageKey, defaultValue?: T) => {
-    return localStorage.getItem(key) || defaultValue;
-}
-export const setStorageItem = (key: StorageKey, value: string): void => {
-  try {
-    localStorage.setItem(key, value);
-  } catch (error) {
-    console.error(`Error setting item ${key} in localStorage`, error);
-  }
+const getStorageItem = <T>(key: StorageKey, defaultValue?: T) => {
+  return items()[key] ?? defaultValue;
+};
+const setStorageItem = (key: StorageKey, value: string): void => {
+  localStorage.setItem(key, value);
+  setItems({ ...items(), [key]: value });
+};
+
+export const useStorage = () => {
+  return {
+    getItem: getStorageItem,
+    setItem: setStorageItem,
+  };
 };

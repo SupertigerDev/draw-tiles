@@ -13,7 +13,6 @@ var (
 		{Name: "id", Type: field.TypeInt64, Increment: true},
 		{Name: "x", Type: field.TypeInt},
 		{Name: "y", Type: field.TypeInt},
-		{Name: "username", Type: field.TypeString},
 		{Name: "user_tiles", Type: field.TypeInt64, Nullable: true},
 	}
 	// TilesTable holds the schema information for the "tiles" table.
@@ -24,7 +23,7 @@ var (
 		ForeignKeys: []*schema.ForeignKey{
 			{
 				Symbol:     "tiles_users_tiles",
-				Columns:    []*schema.Column{TilesColumns[4]},
+				Columns:    []*schema.Column{TilesColumns[3]},
 				RefColumns: []*schema.Column{UsersColumns[0]},
 				OnDelete:   schema.SetNull,
 			},

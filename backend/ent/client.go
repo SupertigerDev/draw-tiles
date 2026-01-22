@@ -316,6 +316,22 @@ func (c *TileClient) GetX(ctx context.Context, id int64) *Tile {
 	return obj
 }
 
+// QueryUser queries the user edge of a Tile.
+func (c *TileClient) QueryUser(_m *Tile) *UserQuery {
+	query := (&UserClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(tile.Table, tile.FieldID, id),
+			sqlgraph.To(user.Table, user.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, tile.UserTable, tile.UserColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
 // Hooks returns the client hooks.
 func (c *TileClient) Hooks() []Hook {
 	return c.hooks.Tile

@@ -15,7 +15,7 @@ func FormatFirstError(err error) string {
 	var ve validator.ValidationErrors
 	if errors.As(err, &ve) && len(ve) > 0 {
 		fe := ve[0]
-		return fmt.Sprintf("%s: %s", fe.Field(), msgForTag(fe.Tag(), fe.Param()))
+		return fmt.Sprintf("%s %s", fe.Field(), msgForTag(fe.Tag(), fe.Param()))
 	}
 
 	return "Invalid request"

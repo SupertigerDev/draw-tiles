@@ -4,6 +4,7 @@ package ent
 
 import (
 	"draw-tiles-backend/ent/tile"
+	"draw-tiles-backend/ent/user"
 	"fmt"
 	"strings"
 
@@ -20,10 +21,31 @@ type Tile struct {
 	X int `json:"x,omitempty"`
 	// Y holds the value of the "y" field.
 	Y int `json:"y,omitempty"`
-	// Username holds the value of the "username" field.
-	Username     string `json:"username,omitempty"`
+	// Edges holds the relations/edges for other nodes in the graph.
+	// The values are being populated by the TileQuery when eager-loading is set.
+	Edges        TileEdges `json:"edges"`
 	user_tiles   *int64
 	selectValues sql.SelectValues
+}
+
+// TileEdges holds the relations/edges for other nodes in the graph.
+type TileEdges struct {
+	// User holds the value of the user edge.
+	User *User `json:"user,omitempty"`
+	// loadedTypes holds the information for reporting if a
+	// type was loaded (or requested) in eager-loading or not.
+	loadedTypes [1]bool
+}
+
+// UserOrErr returns the User value or an error if the edge
+// was not loaded in eager-loading, or loaded but was not found.
+func (e TileEdges) UserOrErr() (*User, error) {
+	if e.User != nil {
+		return e.User, nil
+	} else if e.loadedTypes[0] {
+		return nil, &NotFoundError{label: user.Label}
+	}
+	return nil, &NotLoadedError{edge: "user"}
 }
 
 // scanValues returns the types for scanning values from sql.Rows.
@@ -33,8 +55,6 @@ func (*Tile) scanValues(columns []string) ([]any, error) {
 		switch columns[i] {
 		case tile.FieldID, tile.FieldX, tile.FieldY:
 			values[i] = new(sql.NullInt64)
-		case tile.FieldUsername:
-			values[i] = new(sql.NullString)
 		case tile.ForeignKeys[0]: // user_tiles
 			values[i] = new(sql.NullInt64)
 		default:
@@ -70,12 +90,6 @@ func (_m *Tile) assignValues(columns []string, values []any) error {
 			} else if value.Valid {
 				_m.Y = int(value.Int64)
 			}
-		case tile.FieldUsername:
-			if value, ok := values[i].(*sql.NullString); !ok {
-				return fmt.Errorf("unexpected type %T for field username", values[i])
-			} else if value.Valid {
-				_m.Username = value.String
-			}
 		case tile.ForeignKeys[0]:
 			if value, ok := values[i].(*sql.NullInt64); !ok {
 				return fmt.Errorf("unexpected type %T for edge-field user_tiles", value)
@@ -94,6 +108,11 @@ func (_m *Tile) assignValues(columns []string, values []any) error {
 // This includes values selected through modifiers, order, etc.
 func (_m *Tile) Value(name string) (ent.Value, error) {
 	return _m.selectValues.Get(name)
+}
+
+// QueryUser queries the "user" edge of the Tile entity.
+func (_m *Tile) QueryUser() *UserQuery {
+	return NewTileClient(_m.config).QueryUser(_m)
 }
 
 // Update returns a builder for updating this Tile.
@@ -124,9 +143,6 @@ func (_m *Tile) String() string {
 	builder.WriteString(", ")
 	builder.WriteString("y=")
 	builder.WriteString(fmt.Sprintf("%v", _m.Y))
-	builder.WriteString(", ")
-	builder.WriteString("username=")
-	builder.WriteString(_m.Username)
 	builder.WriteByte(')')
 	return builder.String()
 }

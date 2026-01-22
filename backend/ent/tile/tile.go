@@ -4,6 +4,7 @@ package tile
 
 import (
 	"entgo.io/ent/dialect/sql"
+	"entgo.io/ent/dialect/sql/sqlgraph"
 )
 
 const (
@@ -15,10 +16,17 @@ const (
 	FieldX = "x"
 	// FieldY holds the string denoting the y field in the database.
 	FieldY = "y"
-	// FieldUsername holds the string denoting the username field in the database.
-	FieldUsername = "username"
+	// EdgeUser holds the string denoting the user edge name in mutations.
+	EdgeUser = "user"
 	// Table holds the table name of the tile in the database.
 	Table = "tiles"
+	// UserTable is the table that holds the user relation/edge.
+	UserTable = "tiles"
+	// UserInverseTable is the table name for the User entity.
+	// It exists in this package in order to avoid circular dependency with the "user" package.
+	UserInverseTable = "users"
+	// UserColumn is the table column denoting the user relation/edge.
+	UserColumn = "user_tiles"
 )
 
 // Columns holds all SQL columns for tile fields.
@@ -26,7 +34,6 @@ var Columns = []string{
 	FieldID,
 	FieldX,
 	FieldY,
-	FieldUsername,
 }
 
 // ForeignKeys holds the SQL foreign-keys that are owned by the "tiles"
@@ -50,11 +57,6 @@ func ValidColumn(column string) bool {
 	return false
 }
 
-var (
-	// UsernameValidator is a validator for the "username" field. It is called by the builders before save.
-	UsernameValidator func(string) error
-)
-
 // OrderOption defines the ordering options for the Tile queries.
 type OrderOption func(*sql.Selector)
 
@@ -73,7 +75,16 @@ func ByY(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldY, opts...).ToFunc()
 }
 
-// ByUsername orders the results by the username field.
-func ByUsername(opts ...sql.OrderTermOption) OrderOption {
-	return sql.OrderByField(FieldUsername, opts...).ToFunc()
+// ByUserField orders the results by user field.
+func ByUserField(field string, opts ...sql.OrderTermOption) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborTerms(s, newUserStep(), sql.OrderByField(field, opts...))
+	}
+}
+func newUserStep() *sqlgraph.Step {
+	return sqlgraph.NewStep(
+		sqlgraph.From(Table, FieldID),
+		sqlgraph.To(UserInverseTable, FieldID),
+		sqlgraph.Edge(sqlgraph.M2O, true, UserTable, UserColumn),
+	)
 }

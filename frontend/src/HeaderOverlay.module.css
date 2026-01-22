@@ -1,0 +1,17 @@
+.headerOverlay {
+  position: absolute;
+  z-index: 1111;
+  top: 0;
+  right: 0;
+  left: 0;
+  display: flex;
+  padding: 10px;
+  pointer-events: none;
+}
+
+.authButtons {
+  display: flex;
+  margin-left: auto;
+  pointer-events: all;
+  gap: 4px;
+}

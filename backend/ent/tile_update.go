@@ -6,6 +6,7 @@ import (
 	"context"
 	"draw-tiles-backend/ent/predicate"
 	"draw-tiles-backend/ent/tile"
+	"draw-tiles-backend/ent/user"
 	"errors"
 	"fmt"
 
@@ -69,23 +70,34 @@ func (_u *TileUpdate) AddY(v int) *TileUpdate {
 	return _u
 }
 
-// SetUsername sets the "username" field.
-func (_u *TileUpdate) SetUsername(v string) *TileUpdate {
-	_u.mutation.SetUsername(v)
+// SetUserID sets the "user" edge to the User entity by ID.
+func (_u *TileUpdate) SetUserID(id int64) *TileUpdate {
+	_u.mutation.SetUserID(id)
 	return _u
 }
 
-// SetNillableUsername sets the "username" field if the given value is not nil.
-func (_u *TileUpdate) SetNillableUsername(v *string) *TileUpdate {
-	if v != nil {
-		_u.SetUsername(*v)
+// SetNillableUserID sets the "user" edge to the User entity by ID if the given value is not nil.
+func (_u *TileUpdate) SetNillableUserID(id *int64) *TileUpdate {
+	if id != nil {
+		_u = _u.SetUserID(*id)
 	}
 	return _u
+}
+
+// SetUser sets the "user" edge to the User entity.
+func (_u *TileUpdate) SetUser(v *User) *TileUpdate {
+	return _u.SetUserID(v.ID)
 }
 
 // Mutation returns the TileMutation object of the builder.
 func (_u *TileUpdate) Mutation() *TileMutation {
 	return _u.mutation
+}
+
+// ClearUser clears the "user" edge to the User entity.
+func (_u *TileUpdate) ClearUser() *TileUpdate {
+	_u.mutation.ClearUser()
+	return _u
 }
 
 // Save executes the query and returns the number of nodes affected by the update operation.
@@ -115,20 +127,7 @@ func (_u *TileUpdate) ExecX(ctx context.Context) {
 	}
 }
 
-// check runs all checks and user-defined validators on the builder.
-func (_u *TileUpdate) check() error {
-	if v, ok := _u.mutation.Username(); ok {
-		if err := tile.UsernameValidator(v); err != nil {
-			return &ValidationError{Name: "username", err: fmt.Errorf(`ent: validator failed for field "Tile.username": %w`, err)}
-		}
-	}
-	return nil
-}
-
 func (_u *TileUpdate) sqlSave(ctx context.Context) (_node int, err error) {
-	if err := _u.check(); err != nil {
-		return _node, err
-	}
 	_spec := sqlgraph.NewUpdateSpec(tile.Table, tile.Columns, sqlgraph.NewFieldSpec(tile.FieldID, field.TypeInt64))
 	if ps := _u.mutation.predicates; len(ps) > 0 {
 		_spec.Predicate = func(selector *sql.Selector) {
@@ -149,8 +148,34 @@ func (_u *TileUpdate) sqlSave(ctx context.Context) (_node int, err error) {
 	if value, ok := _u.mutation.AddedY(); ok {
 		_spec.AddField(tile.FieldY, field.TypeInt, value)
 	}
-	if value, ok := _u.mutation.Username(); ok {
-		_spec.SetField(tile.FieldUsername, field.TypeString, value)
+	if _u.mutation.UserCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: true,
+			Table:   tile.UserTable,
+			Columns: []string{tile.UserColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(user.FieldID, field.TypeInt64),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.UserIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: true,
+			Table:   tile.UserTable,
+			Columns: []string{tile.UserColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(user.FieldID, field.TypeInt64),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
 	}
 	if _node, err = sqlgraph.UpdateNodes(ctx, _u.driver, _spec); err != nil {
 		if _, ok := err.(*sqlgraph.NotFoundError); ok {
@@ -214,23 +239,34 @@ func (_u *TileUpdateOne) AddY(v int) *TileUpdateOne {
 	return _u
 }
 
-// SetUsername sets the "username" field.
-func (_u *TileUpdateOne) SetUsername(v string) *TileUpdateOne {
-	_u.mutation.SetUsername(v)
+// SetUserID sets the "user" edge to the User entity by ID.
+func (_u *TileUpdateOne) SetUserID(id int64) *TileUpdateOne {
+	_u.mutation.SetUserID(id)
 	return _u
 }
 
-// SetNillableUsername sets the "username" field if the given value is not nil.
-func (_u *TileUpdateOne) SetNillableUsername(v *string) *TileUpdateOne {
-	if v != nil {
-		_u.SetUsername(*v)
+// SetNillableUserID sets the "user" edge to the User entity by ID if the given value is not nil.
+func (_u *TileUpdateOne) SetNillableUserID(id *int64) *TileUpdateOne {
+	if id != nil {
+		_u = _u.SetUserID(*id)
 	}
 	return _u
+}
+
+// SetUser sets the "user" edge to the User entity.
+func (_u *TileUpdateOne) SetUser(v *User) *TileUpdateOne {
+	return _u.SetUserID(v.ID)
 }
 
 // Mutation returns the TileMutation object of the builder.
 func (_u *TileUpdateOne) Mutation() *TileMutation {
 	return _u.mutation
+}
+
+// ClearUser clears the "user" edge to the User entity.
+func (_u *TileUpdateOne) ClearUser() *TileUpdateOne {
+	_u.mutation.ClearUser()
+	return _u
 }
 
 // Where appends a list predicates to the TileUpdate builder.
@@ -273,20 +309,7 @@ func (_u *TileUpdateOne) ExecX(ctx context.Context) {
 	}
 }
 
-// check runs all checks and user-defined validators on the builder.
-func (_u *TileUpdateOne) check() error {
-	if v, ok := _u.mutation.Username(); ok {
-		if err := tile.UsernameValidator(v); err != nil {
-			return &ValidationError{Name: "username", err: fmt.Errorf(`ent: validator failed for field "Tile.username": %w`, err)}
-		}
-	}
-	return nil
-}
-
 func (_u *TileUpdateOne) sqlSave(ctx context.Context) (_node *Tile, err error) {
-	if err := _u.check(); err != nil {
-		return _node, err
-	}
 	_spec := sqlgraph.NewUpdateSpec(tile.Table, tile.Columns, sqlgraph.NewFieldSpec(tile.FieldID, field.TypeInt64))
 	id, ok := _u.mutation.ID()
 	if !ok {
@@ -324,8 +347,34 @@ func (_u *TileUpdateOne) sqlSave(ctx context.Context) (_node *Tile, err error) {
 	if value, ok := _u.mutation.AddedY(); ok {
 		_spec.AddField(tile.FieldY, field.TypeInt, value)
 	}
-	if value, ok := _u.mutation.Username(); ok {
-		_spec.SetField(tile.FieldUsername, field.TypeString, value)
+	if _u.mutation.UserCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: true,
+			Table:   tile.UserTable,
+			Columns: []string{tile.UserColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(user.FieldID, field.TypeInt64),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.UserIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: true,
+			Table:   tile.UserTable,
+			Columns: []string{tile.UserColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(user.FieldID, field.TypeInt64),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
 	}
 	_node = &Tile{config: _u.config}
 	_spec.Assign = _node.assignValues

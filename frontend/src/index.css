@@ -36,3 +36,17 @@ a {
     background-color: #70a2ff33;
   }
 }
+
+button {
+  padding: 8px;
+  border: none;
+  border-radius: 6px;
+  color: #70a2ff;
+  background-color: rgba(18, 33, 63, 0.774);
+  cursor: pointer;
+  transition: 0.2s;
+  backdrop-filter: blur(20px);
+  &:hover {
+    background-color: rgba(25, 46, 87, 0.774);
+  }
+}

@@ -2,6 +2,7 @@ package schema
 
 import (
 	"entgo.io/ent"
+	"entgo.io/ent/schema/edge"
 	"entgo.io/ent/schema/field"
 	"entgo.io/ent/schema/index"
 )
@@ -17,13 +18,16 @@ func (Tile) Fields() []ent.Field {
 		field.Int64("id").Unique().Immutable().StructTag(`json:"id,string"`),
 		field.Int("x"),
 		field.Int("y"),
-		field.String("username").NotEmpty(),
 	}
 }
 
 // Edges of the Tile.
 func (Tile) Edges() []ent.Edge {
-	return nil
+	return []ent.Edge{
+		edge.From("user", User.Type).
+			Ref("tiles").
+			Unique(),
+	}
 }
 
 func (Tile) Indexes() []ent.Index {

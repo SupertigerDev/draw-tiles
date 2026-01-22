@@ -6,6 +6,7 @@ import (
 	"context"
 	"draw-tiles-backend/ent/predicate"
 	"draw-tiles-backend/ent/tile"
+	"draw-tiles-backend/ent/user"
 	"fmt"
 	"math"
 
@@ -22,6 +23,7 @@ type TileQuery struct {
 	order      []tile.OrderOption
 	inters     []Interceptor
 	predicates []predicate.Tile
+	withUser   *UserQuery
 	withFKs    bool
 	// intermediate query (i.e. traversal path).
 	sql  *sql.Selector
@@ -57,6 +59,28 @@ func (_q *TileQuery) Unique(unique bool) *TileQuery {
 func (_q *TileQuery) Order(o ...tile.OrderOption) *TileQuery {
 	_q.order = append(_q.order, o...)
 	return _q
+}
+
+// QueryUser chains the current query on the "user" edge.
+func (_q *TileQuery) QueryUser() *UserQuery {
+	query := (&UserClient{config: _q.config}).Query()
+	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
+		if err := _q.prepareQuery(ctx); err != nil {
+			return nil, err
+		}
+		selector := _q.sqlQuery(ctx)
+		if err := selector.Err(); err != nil {
+			return nil, err
+		}
+		step := sqlgraph.NewStep(
+			sqlgraph.From(tile.Table, tile.FieldID, selector),
+			sqlgraph.To(user.Table, user.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, tile.UserTable, tile.UserColumn),
+		)
+		fromU = sqlgraph.SetNeighbors(_q.driver.Dialect(), step)
+		return fromU, nil
+	}
+	return query
 }
 
 // First returns the first Tile entity from the query.
@@ -251,10 +275,22 @@ func (_q *TileQuery) Clone() *TileQuery {
 		order:      append([]tile.OrderOption{}, _q.order...),
 		inters:     append([]Interceptor{}, _q.inters...),
 		predicates: append([]predicate.Tile{}, _q.predicates...),
+		withUser:   _q.withUser.Clone(),
 		// clone intermediate query.
 		sql:  _q.sql.Clone(),
 		path: _q.path,
 	}
+}
+
+// WithUser tells the query-builder to eager-load the nodes that are connected to
+// the "user" edge. The optional arguments are used to configure the query builder of the edge.
+func (_q *TileQuery) WithUser(opts ...func(*UserQuery)) *TileQuery {
+	query := (&UserClient{config: _q.config}).Query()
+	for _, opt := range opts {
+		opt(query)
+	}
+	_q.withUser = query
+	return _q
 }
 
 // GroupBy is used to group vertices by one or more fields/columns.
@@ -333,10 +369,16 @@ func (_q *TileQuery) prepareQuery(ctx context.Context) error {
 
 func (_q *TileQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*Tile, error) {
 	var (
-		nodes   = []*Tile{}
-		withFKs = _q.withFKs
-		_spec   = _q.querySpec()
+		nodes       = []*Tile{}
+		withFKs     = _q.withFKs
+		_spec       = _q.querySpec()
+		loadedTypes = [1]bool{
+			_q.withUser != nil,
+		}
 	)
+	if _q.withUser != nil {
+		withFKs = true
+	}
 	if withFKs {
 		_spec.Node.Columns = append(_spec.Node.Columns, tile.ForeignKeys...)
 	}
@@ -346,6 +388,7 @@ func (_q *TileQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*Tile, e
 	_spec.Assign = func(columns []string, values []any) error {
 		node := &Tile{config: _q.config}
 		nodes = append(nodes, node)
+		node.Edges.loadedTypes = loadedTypes
 		return node.assignValues(columns, values)
 	}
 	for i := range hooks {
@@ -357,7 +400,46 @@ func (_q *TileQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*Tile, e
 	if len(nodes) == 0 {
 		return nodes, nil
 	}
+	if query := _q.withUser; query != nil {
+		if err := _q.loadUser(ctx, query, nodes, nil,
+			func(n *Tile, e *User) { n.Edges.User = e }); err != nil {
+			return nil, err
+		}
+	}
 	return nodes, nil
+}
+
+func (_q *TileQuery) loadUser(ctx context.Context, query *UserQuery, nodes []*Tile, init func(*Tile), assign func(*Tile, *User)) error {
+	ids := make([]int64, 0, len(nodes))
+	nodeids := make(map[int64][]*Tile)
+	for i := range nodes {
+		if nodes[i].user_tiles == nil {
+			continue
+		}
+		fk := *nodes[i].user_tiles
+		if _, ok := nodeids[fk]; !ok {
+			ids = append(ids, fk)
+		}
+		nodeids[fk] = append(nodeids[fk], nodes[i])
+	}
+	if len(ids) == 0 {
+		return nil
+	}
+	query.Where(user.IDIn(ids...))
+	neighbors, err := query.All(ctx)
+	if err != nil {
+		return err
+	}
+	for _, n := range neighbors {
+		nodes, ok := nodeids[n.ID]
+		if !ok {
+			return fmt.Errorf(`unexpected foreign-key "user_tiles" returned %v`, n.ID)
+		}
+		for i := range nodes {
+			assign(nodes[i], n)
+		}
+	}
+	return nil
 }
 
 func (_q *TileQuery) sqlCount(ctx context.Context) (int, error) {
