@@ -1,6 +1,6 @@
 import type { JSX } from "solid-js/jsx-runtime";
 import style from "./Tile.module.css";
-import { createSignal, Show } from "solid-js";
+import { createEffect, createSignal, onMount, Show } from "solid-js";
 import { Portal } from "solid-js/web";
 import { Editor } from "./Editor";
 
@@ -25,6 +25,8 @@ export const Tile = (props: TileProps) => {
       height: `${props.size}px`,
       ...props.style,
       "z-index": props.focused ? 1 : 0,
+      "background-image": `url(http://localhost:8080/api/tiles/${props.tile.x},${props.tile.y}/png)`,
+      "background-size": "cover",
     }) as JSX.CSSProperties;
 
   return (
@@ -54,7 +56,11 @@ export const TileInfo = (props: { tile: Tile }) => {
       </div>
       <Show when={showEditor()}>
         <Portal>
-          <Editor close={() => setShowEditor(false)} />
+          <Editor
+            x={props.tile.x}
+            y={props.tile.y}
+            close={() => setShowEditor(false)}
+          />
         </Portal>
       </Show>
     </div>

@@ -1,8 +1,11 @@
 import { onCleanup, onMount } from "solid-js";
 import style from "./Editor.module.css";
+import { updateTile } from "./service";
 
 export interface EditorProps {
   close: () => void;
+  x: number;
+  y: number;
 }
 export const Editor = (props: EditorProps) => {
   const onMessage = (event: MessageEvent) => {
@@ -10,6 +13,13 @@ export const Editor = (props: EditorProps) => {
     if (data.type === "SUBMIT") {
       const { png, psd } = data.payload;
       console.log(png, psd);
+
+      updateTile({
+        x: props.x.toString(),
+        y: props.y.toString(),
+        png: data.payload.png,
+        psd: data.payload.psd,
+      });
     }
   };
 

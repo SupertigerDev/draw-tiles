@@ -69,10 +69,14 @@ func main() {
 		JWT:       jwtService,
 	}
 
+	tileService := services.NewTileService(dbClient)
+
 	userHandler := &handlers.UserHandler{Database: dbClient, Snowflake: node, Validator: validate, Service: userService}
+	tileHandler := &handlers.TileHandler{Database: dbClient, Snowflake: node, Validator: validate, UserService: userService, TileService: tileService}
 
 	api := app.Group("/api")
 	auth := api.Group("/auth")
+	tiles := api.Group("/tiles")
 
 	api.Get("/", func(c *fiber.Ctx) error {
 		return c.SendString("DrawTiles API Online.")
@@ -80,6 +84,10 @@ func main() {
 
 	auth.Post("/register", userHandler.Register)
 	auth.Post("/login", userHandler.Login)
+
+	tiles.Post("/:coords", tileHandler.Update)
+
+	tiles.Get("/:coords/png", tileHandler.GetPNG)
 
 	if err := app.Listen("127.0.0.1:" + cfg.Port); err != nil {
 		log.Fatal("error starting http server: ", err)
